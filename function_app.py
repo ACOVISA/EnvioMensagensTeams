@@ -22,7 +22,7 @@ def timer_trigger(myTimer: func.TimerRequest) -> None:
 
 
     # Define os destinatários e a mensagem padrão
-    emails_destinatarios = ["kaline.ferreira@acovisa.com.br"]
+    emails_destinatarios = ["kaline.ferreira@acovisa.com.br", "francieli.lima@acovisa.com.br"]
 
     # Configuração inicial do Selenium
     service = Service(ChromeDriverManager().install())
