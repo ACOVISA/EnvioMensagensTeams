@@ -7,7 +7,6 @@ from selenium.webdriver.support.ui import Select
 import time
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
 
@@ -17,7 +16,7 @@ load_dotenv()
 app = func.FunctionApp()
 
 @app.schedule(schedule="0 0 6 * * 1-5", arg_name="myTimer", run_on_startup=True,
-              use_monitor=False) 
+              use_monitor=False)
 def timer_trigger(myTimer: func.TimerRequest) -> None:
 
 
@@ -104,7 +103,7 @@ def timer_trigger(myTimer: func.TimerRequest) -> None:
     }
 
     # Converter para string JSON
-    mensagem_string = json.dumps(mensagem_json, ensure_ascii=False)
+    mensagem_string = json.dumps(mensagem_json, ensure_ascii=False).encode('utf-8')
 
     # Verificar o conteúdo da mensagem JSON antes de enviar
     print("Mensagem JSON sendo enviada para o Service Bus:", mensagem_string)
@@ -117,7 +116,7 @@ def timer_trigger(myTimer: func.TimerRequest) -> None:
     # Enviar a mensagem para o Service Bus
 def enviar_para_service_bus(mensagem_string):
     CONNECTION_STR = os.getenv("CONNECTION_STR")
-    QUEUE_NAME = os.getenv("QUEUE_NAME") | "teams-tadeu"
+    QUEUE_NAME = os.getenv("QUEUE_NAME") if os.getenv("QUEUE_NAME") else "teams-tadeu"
     try:
         # Cria o client para se conectar ao Azure Service Bus
         servicebus_client = ServiceBusClient.from_connection_string(conn_str=CONNECTION_STR, logging_enable=True)

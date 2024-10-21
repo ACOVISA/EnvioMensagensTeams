@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: #{containerName}#
+  name: #{containerName}#
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: #{containerName}#
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: #{containerName}#
+    spec:
+      containers:
+        - image: acovisadocker.azurecr.io/#{imageRepository}#
+          name: #{containerName}#
+          ports:
+            - containerPort: 80
+          resources: {}
+      restartPolicy: Always
+status: {}

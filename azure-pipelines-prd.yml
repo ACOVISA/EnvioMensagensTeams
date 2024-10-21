@@ -1,0 +1,101 @@
+trigger:
+  branches:
+    include:
+    - main
+
+resources:
+- repo: self
+
+variables:
+- group: 'acovisa-aux-secrets'
+- name: branch
+  value: 'prd'
+- name: dockerRegistryServiceConnection
+  value: '6168c416-769e-4899-9f9b-571148ca4c03'
+- name: containerName
+  value: 'leilao-dispara-informacoes'
+- name: imageRepository
+  value: '$(containerName)-$(branch)'
+- name: containerRegistry
+  value: 'acovisadocker.azurecr.io'
+- name: dockerfilePath
+  value: '**/Dockerfile'
+- name: tag
+  value: '$(Build.BuildId)'
+- name: imagePullSecret
+  value: 'acovisadockereaaa-auth'
+- name: aksGroup
+  value: 'default'
+- name: aksAmbient
+  value: 'aks-inovaco-$(branch).$(aksGroup)'
+- name: vmImageName
+  value: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+          
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifact Kubernetes
+      condition: succeededOrFailed()
+      inputs:
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/aks-$(branch)'
+        ArtifactName: 'aks-$(branch)'
+        publishLocation: 'Container'
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: $(aksAmbient)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            displayName: Create imagePullSecret
+            inputs:
+              action: createSecret
+              secretName: $(imagePullSecret)
+              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+          
+          - task: qetza.replacetokens.replacetokens-task.replacetokens@3
+            displayName: 'Replace tokens in **/*.yaml'
+            inputs:
+              rootDirectory: '$(Pipeline.Workspace)'
+              targetFiles: '**/*.yaml'
+              encoding: 'auto'
+              tokenPrefix: '#{'
+              tokenSuffix: '}#'
+
+          - task: KubernetesManifest@0
+            displayName: Deploy to Kubernetes cluster
+            inputs:
+              action: deploy
+              manifests: |
+                $(Pipeline.Workspace)/aks-$(branch)/aks-deployment.yaml
+                $(Pipeline.Workspace)/aks-$(branch)/aks-service.yaml
+              imagePullSecrets: |
+                $(imagePullSecret)
+              containers: |
+                $(containerRegistry)/$(imageRepository):$(tag)
