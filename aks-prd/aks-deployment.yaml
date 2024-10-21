@@ -20,6 +20,9 @@ spec:
       containers:
         - image: acovisadocker.azurecr.io/#{imageRepository}#
           name: #{containerName}#
+          env:
+            - name: CONNECTION_STR
+              value: #{teamsTadeuQueueConnection}#
           ports:
             - containerPort: 80
           resources: {}
