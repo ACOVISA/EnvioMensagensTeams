@@ -18,11 +18,8 @@ app = func.FunctionApp()
 @app.schedule(schedule="0 0 6 * * 1-5", arg_name="myTimer", run_on_startup=True,
               use_monitor=False)
 def timer_trigger(myTimer: func.TimerRequest) -> None:
-
-
-
     # Define os destinatários e a mensagem padrão
-    emails_destinatarios = ['francieli.lima@acovisa.com.br', 'kaline.ferreira@acovisa.com.br']
+    emails_destinatarios = ['kaline.ferreira@acovisa.com.br', 'francieli.lima@acovisa.com.br']
 
     # Configuração inicial do Selenium
     service = Service(ChromeDriverManager().install())
@@ -91,29 +88,27 @@ def timer_trigger(myTimer: func.TimerRequest) -> None:
     # Fechar o navegador
     driver.quit()
 
+    # Enviar as mensagens para os destinatários
+    enviar_mensagens_para_destinatarios(informacoes_extracao, emails_destinatarios)
 
-
-    # Exemplo de uso
+def enviar_mensagens_para_destinatarios(informacoes_extracao, emails_destinatarios):
     mensagem_leiloeiros_html = create_html_leiloes_simples(informacoes_extracao)
+    for email in emails_destinatarios:
+        # Preparar a mensagem em formato JSON para o Service Bus
+        mensagem_json = {
+            "email": email,
+            "message": mensagem_leiloeiros_html
+        }
 
-    # Preparar a mensagem em formato JSON para o Service Bus
-    mensagem_json = {
-        "email": emails_destinatarios[0],
-        "message": mensagem_leiloeiros_html
-    }
+        # Converter para string JSON
+        mensagem_string = json.dumps(mensagem_json, ensure_ascii=False).encode('utf-8')
 
-    # Converter para string JSON
-    mensagem_string = json.dumps(mensagem_json, ensure_ascii=False).encode('utf-8')
+        # Verificar o conteúdo da mensagem JSON antes de enviar
+        print("Mensagem JSON sendo enviada para o Service Bus:", mensagem_string)
 
-    # Verificar o conteúdo da mensagem JSON antes de enviar
-    print("Mensagem JSON sendo enviada para o Service Bus:", mensagem_string)
+        # Enviar a mensagem para o Service Bus
+        enviar_para_service_bus(mensagem_string)
 
-
-
-    # Chama a função para enviar a mensagem
-    enviar_para_service_bus(mensagem_string)
-
-    # Enviar a mensagem para o Service Bus
 def enviar_para_service_bus(mensagem_string):
     CONNECTION_STR = os.getenv("CONNECTION_STR")
     QUEUE_NAME = os.getenv("QUEUE_NAME") if os.getenv("QUEUE_NAME") else "teams-tadeu"
